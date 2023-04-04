@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}监控对象{% endblock %}
+
+{% block css %}
+     <link rel="stylesheet" href="{% static 'adminlet-2.4.10/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
+        监控指标配置
+          <select style="color:black;font-size:16px;width: 120px;height:35px;">
+            <option value ="monitor" style="color:black;font-size:12px;">统一告警系统</option>
+            <option value ="log" style="color:black;font-size:12px;">日志分析平台</option>
+            <option value="test0309" style="color:black;font-size:12px;">测试项目0309</option>
+          </select>
+      </h1>
+    </section>
+{% endblock %}
+
+{% block content %}
+
+   <!-- Main content -->
+    <section class="content">
+      <div class="row">
+        <div class="col-xs-12">
+
+        <div class="box">
+        <!-- /.box-header -->
+        <div class="box-body">
+            <button class="btn btn-primary" onclick="">新建</button>
+            <button class="btn btn-default">批量操作</button>
+        </div>
+        <div class="box-body">
+
+            <table id="monitor_object_table" class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>指标ID</th>
+                        <th>采集方式</th>
+                        <th>指标类型</th>
+                        <th>指标名称</th>
+                        <th>指标描述</th>
+                        <th>触发规则</th>
+                        <th>指标阈值</th>
+                        <th>创建时间</th>
+                        <th>更新时间</th>
+                        <th>更多操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                {% for metric in Metrics %}
+
+                    <tr>
+                         <td>
+                             <div class="icheck-primary">
+                                 <input type="checkbox">{{ forloop.counter  }}
+                             </div>
+                         </td>
+                        <td>{{ metric.metric_ID }}</td>
+
+                        {% if metric.collect_type == 0 %}
+                          <td class="text-green text-bold">{{ metric.get_collect_type_display }}</td>
+                        {% elif metric.collect_type == 1 %}
+                          <td class="text-yellow text-bold">{{ metric.get_collect_type_display }}</td>
+                        {% elif metric.collect_type == 2 %}
+                            <td class="text-yellow text-bold">{{ metric.get_collect_type_display }}</td>
+                        {% endif %}
+
+                        <td>{{ metric.metric_type }}</td>
+                        <td>{{ metric.metric_name }}</td>
+                        <td>{{ metric.metric_desc }}</td>
+                        {% if metric.trigger_rule == 'greater' %}
+                          <td class="text-green text-bold">{{ metric.get_trigger_rule_display }}</td>
+                        {% elif metric.trigger_rule == 'less' %}
+                          <td class="text-yellow text-bold">{{ metric.get_trigger_rule_display }}</td>
+                        {% elif metric.trigger_rule == 'equal' %}
+                            <td class="text-yellow text-bold">{{ metric.get_trigger_rule_display }}</td>
+                        {% elif metric.trigger_rule == 'unequal' %}
+                            <td class="text-yellow text-bold">{{ metric.get_trigger_rule_display }}</td>
+                        {% elif metric.trigger_rule == 'less_equal' %}
+                            <td class="text-yellow text-bold">{{ metric.get_trigger_rule_display }}</td>
+                        {% elif metric.trigger_rule == 'greater_equal' %}
+                            <td class="text-yellow text-bold">{{ metric.get_trigger_rule_display }}</td>
+                        {% endif %}
+                        <td>{{ metric.Threshold }}{{ metric.metric_unit }}</td>
+                        <td>{{ metric.create_time|date:"Y/m/d [H:m:s]" }}</td>
+                        <td>{{ metric.update_time|date:"Y/m/d [H:m:s]" }}</td>
+                        <td>
+                            <select style="color:black;font-size:12px;width: 80px;height:25px;">
+                                <option value ="monitor" style="color:black;font-size:12px;">增删目标</option>
+                                <option value ="log" style="color:black;font-size:12px;">详细管理</option>
+                            </select>
+                        </td>
+                    </tr>
+
+                {% empty %}
+                <tr>没有数据</tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- /.box-body -->
+      </div>
+      <!-- /.box -->
+        </div>
+    <!-- /.col -->
+      </div>
+    <!-- /.row -->
+    </section>
+
+{% endblock %}
+
+{% block script %}
+
+<script src="{% static 'adminlet-2.4.10/bower_components/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'adminlet-2.4.10/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js' %}"></script>
+
+<script>
+
+$(function () {
+        $('#monitor_object_table').DataTable({
+          "paging": true,       <!-- 允许分页 -->
+          "lengthChange": false, <!-- 允许改变每页显示的行数 -->
+          "searching": false,    <!-- 允许内容搜索 -->
+          "ordering": true,     <!-- 允许排序 -->
+          "info": false,         <!-- 显示信息 -->
+          "autoWidth": false    <!-- 固定宽度 -->
+        });
+      });
+
+</script>
+
+{% endblock %}

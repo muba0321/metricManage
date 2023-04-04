@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}监控对象{% endblock %}
+
+{% block css %}
+     <link rel="stylesheet" href="{% static 'adminlet-2.4.10/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1>
+        监控对象配置
+      </h1>
+    </section>
+{% endblock %}
+
+{% block content %}
+
+   <!-- Main content -->
+    <section class="content">
+      <div class="row">
+        <div class="col-xs-12">
+
+        <div class="box">
+        <!-- /.box-header -->
+        <div class="box-body">
+            <button class="btn btn-primary">新建</button>
+            <button class="btn btn-default">批量操作</button>
+        </div>
+        <div class="box-body">
+
+            <table id="monitor_object_table" class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>监控对象层级</th>
+                        <th>监控对象名称</th>
+                        <th>创建时间</th>
+                        <th>更新时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                {% for mobject in MonitorObject %}
+
+                    <tr>
+                         <td>
+                             <div class="icheck-primary">
+                                 <input type="checkbox">{{ forloop.counter  }}
+                             </div>
+                         </td>
+
+                        {% if mobject.object_type == 'hardware_device_layer' %}
+                          <td class="text-green text-bold">{{ mobject.get_object_type_display }}</td>
+                        {% elif mobject.object_type == "operating_system_layer" %}
+                          <td class="text-yellow text-bold">{{ mobject.get_object_type_display }}</td>
+                        {% elif mobject.object_type == "component_service_layer" %}
+                         <td class="text-blue text-bold">{{ mobject.get_object_type_display }}</td>
+                        {% elif mobject.object_type == "application_performance_layer" %}
+                          <td class="text-red text-bold">{{ mobject.get_object_type_display }}</td>
+                        {% endif %}
+
+
+                        <td>{{ mobject.object_name }}</td>
+
+                        <td>{{ mobject.create_time|date:"Y/m/d [H:m:s]" }}</td>
+
+
+                        <td>{{ mobject.update_time|date:"Y/m/d [H:m:s]" }}</td>
+
+                    </tr>
+
+                {% empty %}
+                <tr>没有数据</tr>
+                {% endfor %}
+                </tbody>
+            <tbody>
+            {% for metric in Metrics %}
+            {% endfor %}
+            </tbody>
+            </table>
+        </div>
+        <!-- /.box-body -->
+      </div>
+      <!-- /.box -->
+        </div>
+    <!-- /.col -->
+      </div>
+    <!-- /.row -->
+    </section>
+
+{% endblock %}
+
+{% block script %}
+
+<script src="{% static 'adminlet-2.4.10/bower_components/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'adminlet-2.4.10/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js' %}"></script>
+
+<script>
+
+$(function () {
+        $('#monitor_object_table').DataTable({
+          "paging": true,       <!-- 允许分页 -->
+          "lengthChange": false, <!-- 允许改变每页显示的行数 -->
+          "searching": false,    <!-- 允许内容搜索 -->
+          "ordering": true,     <!-- 允许排序 -->
+          "info": false,         <!-- 显示信息 -->
+          "autoWidth": false    <!-- 固定宽度 -->
+        });
+      });
+
+</script>
+
+{% endblock %}
