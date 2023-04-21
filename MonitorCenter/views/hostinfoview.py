@@ -30,7 +30,7 @@ def host_object_list(request):
         serializer = HostsInfoSerializer(data=request.POST)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse({'status': 'success', 'host': serializer.data})
+            return JsonResponse({"code": 0, 'status': 'success', 'host': serializer.data})
         else:
             return JsonResponse({'status': 'error', 'errors': serializer.errors})
 
@@ -44,7 +44,7 @@ def host_object_list(request):
         if obj_id:
             queryset = queryset.filter(objects=obj_id)
         serializer = HostsInfoSerializer(queryset, many=True)
-        res = {"code": 20000, "data": serializer.data, 'msg': "success"}
+        res = {"code": 0, "data": serializer.data, 'msg': "success"}
         # 添加返回的数据
         # 返回
         return HttpResponse(json.dumps(res))
@@ -57,7 +57,7 @@ def host_object_detail(request, host_id):
         try:
             host = HostsInfo.objects.get(id=host_id, is_deleted=False)
             serializer = HostsInfoSerializer(host)
-            return JsonResponse({'status': 'success', 'host': serializer.data})
+            return JsonResponse({"code": 0, 'status': 'success', 'host': serializer.data})
         except ObjectDoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Host not found'})
 
@@ -70,7 +70,7 @@ def host_object_detail(request, host_id):
             if serializer.is_valid():
                 serializer.save()
                 print(serializer.data)
-                return JsonResponse({"code": 20000, 'status': 'success', 'host': serializer.data})
+                return JsonResponse({"code": 0, 'status': 'success', 'host': serializer.data})
             else:
                 return JsonResponse({'status': 'error', 'errors': serializer.errors})
         except ObjectDoesNotExist:
@@ -83,7 +83,7 @@ def host_object_detail(request, host_id):
             host.is_deleted = True
             host.save()
             serializer = HostsInfoSerializer(host)
-            return JsonResponse({"code": 20000, 'status': 'success', 'host': serializer.data})
+            return JsonResponse({"code": 0, 'status': 'success', 'host': serializer.data})
         except ObjectDoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Host not found'})
     else:
@@ -95,7 +95,7 @@ def host_sys_list(request, sys_id):
     queryset = HostsInfo.objects.filter(is_deleted=False, sysinfo_content_type__model='sysinfomanage',
                                         sysinfo_object_id=sys_id)
     serializer = HostsInfoSerializer(queryset, many=True)
-    res = {"code": 20000, "data": serializer.data, 'msg': "success"}
+    res = {"code": 0, "data": serializer.data, 'msg': "success"}
     # 添加返回的数据
     # 返回
     return HttpResponse(json.dumps(res))
@@ -123,7 +123,7 @@ def add_host_object_mapping(request):
     mapping, created = HostObjMapping.objects.get_or_create(host=host, object=obj)
 
     if created:
-        return JsonResponse({'status': 'success', 'msg': 'Mapping created'})
+        return JsonResponse({"code": 0, 'status': 'success', 'msg': 'Mapping created'})
     else:
         return JsonResponse({'status': 'success', 'msg': 'Mapping already exists'})
 
@@ -146,7 +146,7 @@ def remove_host_object_mapping(request):
 
     mapping.delete()
 
-    return JsonResponse({'status': 'success', 'msg': 'Mapping removed'})
+    return JsonResponse({"code": 0, 'status': 'success', 'msg': 'Mapping removed'})
 
 
 # 根据对象ID查询主机
@@ -155,7 +155,7 @@ def get_hosts_by_object_id(request, object_id):
     host_mappings = HostObjMapping.objects.filter(object=object)
     hosts = [mapping.host for mapping in host_mappings]
     serializer = HostsInfoSerializer(hosts, many=True)
-    res = {"code": 20000, "data": serializer.data, 'msg': "success"}
+    res = {"code": 0, "data": serializer.data, 'msg': "success"}
     return HttpResponse(json.dumps(res))
 
 
@@ -173,7 +173,7 @@ def add_host_sys_mapping(request):
     mapping, created = HostSysMapping.objects.get_or_create(host=host, sys_info=sys)
 
     if created:
-        return JsonResponse({'status': 'success', 'msg': 'Mapping created'})
+        return JsonResponse({"code": 0, 'status': 'success', 'msg': 'Mapping created'})
     else:
         return JsonResponse({'status': 'success', 'msg': 'Mapping already exists'})
 
@@ -190,16 +190,16 @@ def remove_host_sys_mapping(request):
 
     mapping.delete()
 
-    return JsonResponse({'status': 'success', 'msg': 'Mapping removed'})
+    return JsonResponse({"code": 0, 'status': 'success', 'msg': 'Mapping removed'})
 
 
 # 查询根据系统ID返回主机信息
 def get_hosts_by_sys_id(request, sys_id):
     sys = get_object_or_404(SysInfoManage, id=sys_id)
     host_mappings = HostSysMapping.objects.filter(sys_info=sys)
-    hosts = [mapping.host for mapping in host_mappings]
+    hosts = [mapping.host for mapping in host_mappings if not mapping.host.is_deleted]
     serializer = HostsInfoSerializer(hosts, many=True)
-    res = {"code": 20000, "data": serializer.data, 'msg': "success"}
+    res = {"code": 0, "data": serializer.data, 'msg': "success"}
     return HttpResponse(json.dumps(res))
 
 
@@ -228,6 +228,6 @@ def create_host_and_sys_mapping(request):
     mapping, created = HostSysMapping.objects.get_or_create(host=host, sys_info=sys)
 
     if created:
-        return JsonResponse({"code": 20000, 'status': 'success', 'msg': 'Host created and mapping created'})
+        return JsonResponse({"code": 0, 'status': 'success', 'msg': 'Host created and mapping created'})
     else:
-        return JsonResponse({"code": 20000, 'status': 'success', 'msg': 'Host created and mapping already exists'})
+        return JsonResponse({'status': 'success', 'msg': 'Host created and mapping already exists'})

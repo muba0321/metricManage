@@ -3,6 +3,7 @@ from datetime import datetime
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
+from rest_framework.generics import get_object_or_404
 from rest_framework.utils import json
 
 # Create your views here.
@@ -11,52 +12,49 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from MonitorCenter.custom_db import get_third_party_data
-from MonitorCenter.models import MonitorObject, Metrics, SysInfoManage, HostsInfo
+from MonitorCenter.models import MonitorObject, Metrics, SysInfoManage, HostsInfo, MonitorObjectSystem
 from MonitorCenter.serializers import MonitorObjectSerializer, MetricsSerializer, SysInfoManageSerializer, \
     HostsInfoSerializer
 
+
 @api_view(['POST'])
-def create_monitor_object(request):
+def create_object_and_link_system(request):
+    # 创建对象
     serializer = MonitorObjectSerializer(data=request.data)
     if serializer.is_valid():
-        name = serializer.validated_data['object_name']
-        sysinfo_table_name = 'sysinfomanage'
-        sysinfo_object_id = serializer.validated_data['sysinfo_object_id']
-
-        query = f"SELECT * FROM {sysinfo_table_name} WHERE id={sysinfo_object_id}"
-        third_party_data = get_third_party_data(query)
-
-        sysinfo_content_type = ContentType.objects.get_or_create(
-            app_label='MonitorCenter',
-            model=sysinfo_table_name
-        )[0]
-
-        my_model = MonitorObject(
-            object_name=name,
-            sysinfo_content_type=sysinfo_content_type,
-            sysinfo_object_id=sysinfo_object_id,
-        )
-        my_model.save()
-        return Response({"code": 20000, "status": "success", "message": "MonitorObject created and linked"},
-                        status=status.HTTP_201_CREATED)
+        new_object = serializer.save()
+        object_id = new_object.id
     else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=400)
+
+    # 关联系统
+    system_id = request.data.get('system_id')
+    if system_id:
+        try:
+            system = SysInfoManage.objects.get(id=system_id)
+        except SysInfoManage.DoesNotExist:
+            return Response({"error": "System not found"}, status=404)
+
+        object_system_relation = MonitorObjectSystem(monitor_object_id=object_id, sys_info_manage_id=system_id)
+        object_system_relation.save()
+        return Response({"code": 0, "message": "Object created and linked to system successfully"}, status=201)
+    else:
+        return Response({"error": "System ID is required"}, status=400)
 
 
 @api_view(['GET'])
 def get_monitor_objects_by_system(request, system_id):
     # 获取与指定系统ID关联的所有监控对象，排除逻辑删除的记录
-    monitor_objects = MonitorObject.objects.filter(sysinfo_object_id=system_id, is_deleted=False)
+    object_system_relations = MonitorObjectSystem.objects.filter(sys_info_manage_id=system_id)
+    monitor_object_ids = [relation.monitor_object_id for relation in object_system_relations]
+    monitor_objects = MonitorObject.objects.filter(id__in=monitor_object_ids, is_deleted=False)
 
     # 序列化查询结果
     serializer = MonitorObjectSerializer(monitor_objects, many=True)
 
     # 以JSON格式返回结果
-    res = {"code": 20000, "data": serializer.data, 'msg': "success"}
-    # 添加返回的数据
-    # 返回
-    return HttpResponse(json.dumps(res))
+    res = {"code": 0, "data": serializer.data, 'msg': "success"}
+    return Response(res)
 
 
 @api_view(['PATCH'])
@@ -71,7 +69,7 @@ def update_monitor_object(request, monitor_object_id):
 
     if serializer.is_valid():
         serializer.save()
-        res = {"code": 20000, "data": serializer.data, 'msg': "success"}
+        res = {"code": 0, "data": serializer.data, 'msg': "success"}
         # 添加返回的数据
         # 返回
         return HttpResponse(json.dumps(res))
@@ -88,7 +86,7 @@ def delete_monitor_object(request, monitor_object_id):
 
     monitor_object.is_deleted = True
     monitor_object.save()
-    res = {"code": 20000, 'msg': "success"}
+    res = {"code": 0, 'msg': "success"}
     # 添加返回的数据
     # 返回
     return HttpResponse(json.dumps(res))
@@ -110,7 +108,7 @@ def monitor_object_detail(request, pk):
 
     if request.method == 'GET':
         serializer = MonitorObjectSerializer(monitor_object)
-        res = {"code": 20000, "data": serializer.data, 'msg': "success"}
+        res = {"code": 0, "data": serializer.data, 'msg': "success"}
         # 添加返回的数据
         # 返回
         return HttpResponse(json.dumps(res))
@@ -119,7 +117,7 @@ def monitor_object_detail(request, pk):
         serializer = MonitorObjectSerializer(monitor_object, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            res = {"code": 20000, "data": serializer.data, 'msg': "success"}
+            res = {"code": 0, "data": serializer.data, 'msg': "success"}
             # 添加返回的数据
             # 返回
             return HttpResponse(json.dumps(res))
@@ -127,20 +125,10 @@ def monitor_object_detail(request, pk):
 
     elif request.method == 'DELETE':
         monitor_object.delete()
-        res = {"code": 20000, 'msg': "success"}
+        res = {"code": 0, 'msg': "success"}
         # 添加返回的数据
         # 返回
         return HttpResponse(json.dumps(res))
-
-
-# def index(request):
-#     """
-#     监控对象视图.首页获取信息
-#     :param request:
-#     :return:
-#     """
-#     MonitorObject = models.MonitorObject.objects.all()
-#     return render(request, 'MonitorCenter/index.html', locals())
 
 
 @api_view(['GET'])
@@ -154,7 +142,7 @@ def monitor_object_list(request):
         monitor_objects = MonitorObject.objects.filter(is_deleted=False)
         serializer = MonitorObjectSerializer(monitor_objects, many=True)
 
-        res = {"code": 20000, "data": serializer.data, 'msg': "success"}
+        res = {"code": 0, "data": serializer.data, 'msg': "success"}
         # 添加返回的数据
         # 返回
         return HttpResponse(json.dumps(res))
@@ -171,7 +159,25 @@ def get_monitor_object(request, id):
         return Response(status=status.HTTP_404_NOT_FOUND)
 
     serializer = MonitorObjectSerializer(monitor_object)
-    res = {"code": 20000, "data": serializer.data, 'msg': "success"}
+    res = {"code": 0, "data": serializer.data, 'msg': "success"}
+    # 添加返回的数据
+    # 返回
+    return HttpResponse(json.dumps(res))
+
+
+@api_view(['POST'])
+def create_object_system_relation(request):
+    object_id = request.data.get('object_id')
+    system_ids = request.data.get('system_ids', [])
+
+    monitor_object = get_object_or_404(MonitorObject, pk=object_id)
+    for system_id in system_ids:
+        sys_info_manage = get_object_or_404(SysInfoManage, pk=system_id)
+        monitor_object_system = MonitorObjectSystem(monitor_object=monitor_object, sys_info_manage=sys_info_manage)
+        monitor_object_system.save()
+
+    serializer = MonitorObjectSerializer(monitor_object)
+    res = {"code": 0, "data": serializer.data, 'msg': "success"}
     # 添加返回的数据
     # 返回
     return HttpResponse(json.dumps(res))

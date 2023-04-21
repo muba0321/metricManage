@@ -25,8 +25,6 @@ SECRET_KEY = 'django-insecure-^hpce5*-s*f9lyefb59@h7#bpe1g!o(aq6(l@02j0683)evjkb
 # True: 开发模式;False: 部署模式
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -43,10 +41,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-   # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -81,8 +79,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'MonitorCenter',
         'USER': 'root',
-        'PASSWORD': '1qaz!QAZ2wsx@WSX',
-        'HOST': '144.34.162.239',
+        'PASSWORD': '56ZS66xdQit_',
+        'HOST': '192.168.50.30',
         'PORT': '3306',
     }
 }
@@ -130,8 +128,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ORIGIN_WHITELIST = (
     'http://127.0.0.1:8000',
+    'http://192.168.1.101:9528',
     'http://localhost:9528', #凡是出现在白名单中的域名，都可以访问后端接口
 )
-
+CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ['*']
 CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie

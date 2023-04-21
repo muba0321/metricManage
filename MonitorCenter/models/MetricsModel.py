@@ -68,11 +68,19 @@ class Metrics(models.Model):
 class MetricsMonitorObject(models.Model):
     metric = models.ForeignKey(Metrics, on_delete=models.CASCADE)
     monitor_object = models.ForeignKey('MonitorObject', on_delete=models.CASCADE)
+    sys_info_manages = models.ForeignKey('SysInfoManage', on_delete=models.CASCADE, default=1)
+
+    class Meta:
+        unique_together = ('metric', 'monitor_object', 'sys_info_manages')
 
 
 class MetricsHostsInfo(models.Model):
     metric = models.ForeignKey(Metrics, on_delete=models.CASCADE)
     hosts_info = models.ForeignKey('HostsInfo', on_delete=models.CASCADE)
+    sys_info_manages = models.ForeignKey('SysInfoManage', on_delete=models.CASCADE, default=1)
+
+    class Meta:
+        unique_together = ('metric', 'hosts_info', 'sys_info_manages')
 
 
 class MetricsSysInfoManage(models.Model):
