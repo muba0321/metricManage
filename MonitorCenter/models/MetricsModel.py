@@ -7,7 +7,7 @@ class Metrics(models.Model):
     collect_type = (
         (0, 'Agent'),
         (1, '插件'),
-        (2, '协议')
+        (2, '脚本')
     )
     metrics_type = (
         (0, '系统层级'),
@@ -33,7 +33,7 @@ class Metrics(models.Model):
     # 阈值
     Threshold = models.IntegerField(default=0, verbose_name='阈值')
     # 监控指标单位
-    metric_unit = models.CharField(max_length=256, verbose_name='指标单位')
+    metric_unit = models.CharField(max_length=256, null=True, blank=True, verbose_name='指标单位')
     # 监控指标采集类型
     collect_type = models.SmallIntegerField(choices=collect_type, default=0, verbose_name='指标采集类型')
     # 触发规则

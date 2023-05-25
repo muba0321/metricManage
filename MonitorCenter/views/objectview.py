@@ -1,21 +1,14 @@
-from datetime import datetime
-
-from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.generics import get_object_or_404
 from rest_framework.utils import json
-
-# Create your views here.
-from MonitorCenter import models
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from MonitorCenter.models import MonitorObject, Metrics, SysInfoManage, HostsInfo, MonitorObjectSystem
-from MonitorCenter.serializers import MonitorObjectSerializer, MetricsSerializer, SysInfoManageSerializer, \
-    HostsInfoSerializer
-
+from MonitorCenter.models import MonitorObject, SysInfoManage, MonitorObjectSystem, Metrics, MetricsHostsInfo, \
+    MetricsMonitorObject, HostsInfo
+from MonitorCenter.serializers import MonitorObjectSerializer
 
 @api_view(['POST'])
 def create_object_and_link_system(request):
@@ -181,3 +174,4 @@ def create_object_system_relation(request):
     # 添加返回的数据
     # 返回
     return HttpResponse(json.dumps(res))
+

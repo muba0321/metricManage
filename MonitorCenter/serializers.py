@@ -48,7 +48,7 @@ class HostsInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HostsInfo
-        fields = ['id', 'ip_address', 'object_name', 'create_time', 'update_time', 'is_deleted']
+        fields = ['id', 'ip_address', 'mem_size', 'disk_size', 'cpu_hz', 'thanos_id', 'thanos_status', 'host_name', 'os_disrtro', 'create_type',  'object_name', 'create_time', 'update_time', 'is_deleted']
         read_only_fields = ('id', 'create_time')
 
 

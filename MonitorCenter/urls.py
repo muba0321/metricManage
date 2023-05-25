@@ -7,6 +7,10 @@ app_name = 'MonitorCenter'
 urlpatterns = [
     path('user/login', views.otherview.login),
     path('user/info', views.otherview.info),
+    path('sync/hosts/', views.sync_hosts),
+    path('sync/objects/', views.sync_objects),
+    path('sync/xcobjects/', views.sync_xcobjects),
+    path('sync/system/', views.sync_system_info),
     # 对象接口路径
     # path('objects/', views.MonitorObjectview.index, name='index'),
     path('monitor_objects/system/<int:system_id>/', views.get_monitor_objects_by_system, name='get_monitor_objects_by_system'),
@@ -21,7 +25,7 @@ urlpatterns = [
     path('metrics/', views.MetricsListCreateView.as_view(), name='metrics-list-create'),
     path('metrics/<int:id>/', views.MetricsRetrieveUpdateDestroyView.as_view(), name='metrics-retrieve-update-destroy'),
     path('metrics/sysinfo/', views.create_metrics_with_sys_info, name='create_metrics_with_sys_info'),
-    path('metrics/sysinfo/<int:sys_id>/', views.get_metrics_by_sys_id),
+    path('metrics/sysinfo/<int:sys_id>/<int:metric_type>/', views.get_metrics_by_sys_id),
     path('metrics/create_with_hosts/', views.create_metrics_with_hosts),
     path('metrics_object_relation/', views.create_metric_object_relation),
     path('metrics_system_relation/', views.associate_metric_and_system, name='associate_metric_and_system'),
@@ -29,6 +33,8 @@ urlpatterns = [
     path('sys_metric_hosts/<int:sys_id>/<int:id>/', views.get_hosts_by_sys_and_metric, name='get_hosts_by_sys_and_metric'),
     path('remove_hostByMetric_Sys/<int:metric_id>/<int:sys_id>/', views.remove_hosts_from_metric_and_sys, name='remove_host_from_metric_and_sys'),
     path('remove_objectByMetric_Sys/<int:metric_id>/<int:sys_id>/', views.remove_objects_from_metric_and_sys, name='remove_object_from_metric_and_sys'),
+    path('metrics/add_common_metric_to_all_sys/', views.add_metrics_to_all_sys),
+    path('metrics_summary/<int:sys_id>/<int:metric_type>/', views.metrics_summary),
     # 系统信息接口路径
     re_path(r'^sysinfo/api/$', views.sysinfoview.sysinfo_object_list),
     re_path(r'^sysinfo/api/(?P<pk>[0-9]+)$', views.sysinfoview.sysinfo_object_detail),

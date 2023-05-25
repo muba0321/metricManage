@@ -74,16 +74,28 @@ WSGI_APPLICATION = 'djangoProject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'MonitorCenter',
+#         'USER': 'root',
+#         'PASSWORD': '56ZS66xdQit_',
+#         'HOST': '192.168.50.30',
+#         'PORT': '3306',
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'MonitorCenter',
         'USER': 'root',
-        'PASSWORD': '56ZS66xdQit_',
-        'HOST': '192.168.50.30',
+        'PASSWORD': '1qaz!QAZ2wsx@WSX',
+        'HOST': '144.34.162.239',
         'PORT': '3306',
     }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -129,7 +141,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ORIGIN_WHITELIST = (
     'http://127.0.0.1:8000',
     'http://192.168.1.101:9528',
-    'http://localhost:9528', #凡是出现在白名单中的域名，都可以访问后端接口
+    'http://localhost:9528',
+    'http://144.34.162.239:8001',
+    #凡是出现在白名单中的域名，都可以访问后端接口
 )
 CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ['*']

@@ -1,21 +1,11 @@
-from datetime import datetime
-
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import JsonResponse, QueryDict, HttpResponse
-from django.shortcuts import render
+from django.http import JsonResponse, HttpResponse
 from rest_framework.generics import get_object_or_404
-from rest_framework.renderers import JSONRenderer
 from rest_framework.utils import json
-
-# Create your views here.
-from MonitorCenter import models
-from rest_framework import status
 from rest_framework.decorators import api_view
-from rest_framework.response import Response
 
-from MonitorCenter.models import MonitorObject, Metrics, SysInfoManage, HostsInfo, HostSysMapping, HostObjMapping
-from MonitorCenter.serializers import MonitorObjectSerializer, MetricsSerializer, SysInfoManageSerializer, \
-    HostsInfoSerializer
+from MonitorCenter.models import MonitorObject, SysInfoManage, HostsInfo, HostSysMapping, HostObjMapping
+from MonitorCenter.serializers import HostsInfoSerializer
 
 
 def host_object_list(request):
@@ -210,6 +200,12 @@ def create_host_and_sys_mapping(request):
     """
     sys_id = request.data.get('sys_id')
     ip_address = request.data.get('ip_address')
+    mem_size = request.data.get('mem_size')
+    disk_size = request.data.get('disk_size')
+    cpu_hz = request.data.get('cpu_hz')
+    host_name = request.data.get('host_name')
+    os_disrtro = request.data.get('os_disrtro')
+
 
     if not sys_id or not ip_address:
         return JsonResponse({'status': 'error', 'errors': 'sys_id or ip_address not provided'})
@@ -217,7 +213,7 @@ def create_host_and_sys_mapping(request):
     sys = get_object_or_404(SysInfoManage, pk=sys_id)
 
     # 创建 HostsInfo 实例
-    host_data = {'ip_address': ip_address}
+    host_data = {'ip_address': ip_address, 'mem_size': mem_size, 'disk_size': disk_size, 'cpu_hz': cpu_hz, 'host_name': host_name, 'os_disrtro': os_disrtro}
     host_serializer = HostsInfoSerializer(data=host_data)
     if host_serializer.is_valid():
         host = host_serializer.save()

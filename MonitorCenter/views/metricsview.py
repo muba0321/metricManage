@@ -1,8 +1,10 @@
 import json
 from datetime import datetime
 
+from django.db.models import Q
 from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny
 
@@ -25,7 +27,16 @@ class MetricsListCreateView(generics.ListCreateAPIView):
     serializer_class = MetricsSerializer
 
     def list(self, request, *args, **kwargs):
+        # 获取查询参数metric_type
+        metric_type = request.GET.get('metric_type', None)
+
         queryset = self.filter_queryset(self.get_queryset())
+
+        # 根据外部输入的变量返回指标类型为系统层级和自定义层级的指标
+        if metric_type == "系统层级":
+            queryset = queryset.filter(metric_type=0)  # 0 corresponds to 系统层级 in your choices
+        elif metric_type == "自定义":
+            queryset = queryset.filter(metric_type=1)  # 1 corresponds to 自定义 in your choices
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -121,19 +132,25 @@ def create_metrics_with_sys_info(request):
 
 
 @api_view(['GET'])
-# @permission_classes([AllowAny])
-def get_metrics_by_sys_id(request, sys_id):
+def get_metrics_by_sys_id(request, sys_id, metric_type):
     try:
-        # check_access_key(request)
         sys_info = SysInfoManage.objects.get(pk=sys_id)
     except SysInfoManage.DoesNotExist:
         return JsonResponse({'error': 'System does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-    metrics = sys_info.metrics_set.filter(is_deleted=False)
+    # convert the metric_type string to an integer
+    metric_type = int(metric_type)
+
+    if metric_type is not None:
+        if metric_type == 0:
+            metrics = sys_info.metrics_set.filter(Q(is_deleted=False) & Q(metric_type=0))
+        else:
+            metrics = sys_info.metrics_set.filter(Q(is_deleted=False) & ~Q(metric_type=0))
+    else:
+        metrics = sys_info.metrics_set.filter(is_deleted=False)
+
     serializer = DetailedMetricSerializer(metrics, many=True)
     res = {"code": 0, "data": serializer.data, 'msg': "success"}
-    # 添加返回的数据
-    # 返回
     return HttpResponse(json.dumps(res))
 
 
@@ -180,7 +197,8 @@ def create_metric_object_relation(request):
 
     for object_id in object_ids:
         monitor_object = get_object_or_404(MonitorObject, pk=object_id)
-        MetricsMonitorObject.objects.create(metric=metric, monitor_object=monitor_object, sys_info_manages=sys_info_manages)
+        MetricsMonitorObject.objects.create(metric=metric, monitor_object=monitor_object,
+                                            sys_info_manages=sys_info_manages)
 
     metric.save()
     serializer = MetricsSerializer(metric)
@@ -266,11 +284,34 @@ def remove_objects_from_metric_and_sys(request, metric_id, sys_id):
     for object_id in objects_ids:
         monitor_object = get_object_or_404(MonitorObject, pk=object_id)
         try:
-            metrics_monitor_object = MetricsMonitorObject.objects.filter(sys_info_manages=sys_info, metric=metric, monitor_object=monitor_object)
+            metrics_monitor_object = MetricsMonitorObject.objects.filter(sys_info_manages=sys_info, metric=metric,
+                                                                         monitor_object=monitor_object)
             metrics_monitor_object.delete()
         except MetricsMonitorObject.DoesNotExist:
             pass
     res = {"code": 0, 'msg': "objects removed from metric and sys"}
     # 添加返回的数据
     # 返回
+    return HttpResponse(json.dumps(res))
+
+
+@csrf_exempt
+def add_metrics_to_all_sys(request):
+    # 获取所有 metric_type 为0的指标
+    metrics = Metrics.objects.filter(metric_type=0)
+
+    # 获取所有的系统
+    systems = SysInfoManage.objects.all()
+
+    # 遍历每一个系统
+    for sys_info in systems:
+        # 遍历每一个指标
+        for metric in metrics:
+            # 检查该指标是否已经与该系统关联
+            if not metric.sys_info_manages.filter(id=sys_info.id).exists():
+                # 如果未关联，则创建新的关联
+                metric.sys_info_manages.add(sys_info)
+
+    # 构造返回结果
+    res = {"code": 0, 'msg': "common metrics added to all systems"}
     return HttpResponse(json.dumps(res))
