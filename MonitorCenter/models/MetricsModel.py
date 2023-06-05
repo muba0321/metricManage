@@ -10,7 +10,7 @@ class Metrics(models.Model):
         (2, '脚本')
     )
     metrics_type = (
-        (0, '系统层级'),
+        (0, '公共指标'),
         (1, '自定义'),
         (2, '模块层级')
     )
@@ -29,15 +29,15 @@ class Metrics(models.Model):
     # 监控指标类型
     metric_type = models.SmallIntegerField(choices=metrics_type, default=0, verbose_name='指标类型')
     # 监控指标描述
-    metric_desc = models.CharField(max_length=256, verbose_name='指标描述')
+    metric_desc = models.CharField(max_length=256, verbose_name='指标描述', null=True, blank=True)
     # 阈值
-    Threshold = models.IntegerField(default=0, verbose_name='阈值')
+    Threshold = models.CharField(max_length=256, verbose_name='阈值', null=True, blank=True)
     # 监控指标单位
     metric_unit = models.CharField(max_length=256, null=True, blank=True, verbose_name='指标单位')
     # 监控指标采集类型
     collect_type = models.SmallIntegerField(choices=collect_type, default=0, verbose_name='指标采集类型')
     # 触发规则
-    trigger_rule = models.CharField(max_length=256, choices=trigger_rule_type, default='less', verbose_name='触发规则')
+    trigger_rule = models.CharField(max_length=256, choices=trigger_rule_type, verbose_name='触发规则', null=True, blank=True)
     # 指标创建时间
     create_time = models.DateTimeField(auto_now_add=True, verbose_name='创建日期')
     # 指标更新时间
@@ -56,6 +56,18 @@ class Metrics(models.Model):
 
     def __str__(self):
         return '<%s>  %s' % (self.get_trigger_rule_display(), self.collect_type)
+
+    @property
+    def metric_type_display(self):
+        return {'value': self.metric_type, 'display': self.get_metric_type_display()}
+
+    @property
+    def collect_type_display(self):
+        return {'value': self.collect_type, 'display': self.get_collect_type_display()}
+
+    @property
+    def trigger_rule_display(self):
+        return {'value': self.trigger_rule, 'display': self.get_trigger_rule_display()}
 
     class Meta:
         verbose_name = '监控指标表'
@@ -84,5 +96,15 @@ class MetricsHostsInfo(models.Model):
 
 
 class MetricsSysInfoManage(models.Model):
+    trigger_rule_type = (
+        ('greater', '>'),
+        ('less', '<'),
+        ('equal', '='),
+        ('unequal', '≠'),
+        ('greater_equal', '≥'),
+        ('less_equal', '≤')
+    )
     metric = models.ForeignKey(Metrics, on_delete=models.CASCADE)
     sys_info = models.ForeignKey('SysInfoManage', on_delete=models.CASCADE)
+    trigger_rule = models.CharField(max_length=256, choices=trigger_rule_type, verbose_name='触发规则', null=True, blank=True)
+    Threshold = models.CharField(max_length=256, verbose_name='阈值', null=True, blank=True)

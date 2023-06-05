@@ -10,7 +10,7 @@ class SysInfoManage(models.Model):
         ('third_level_layer', '三级系统'),
     )
     Sys_name = models.CharField(max_length=64, verbose_name='系统全称')
-    Sys_abbreviation = models.CharField(max_length=64,  unique=True, verbose_name='系统简称')
+    Sys_abbreviation = models.CharField(max_length=64,  verbose_name='系统简称')
     Sys_level = models.CharField(choices=sys_level_layer, max_length=64, default='third_level_layer',
                                  verbose_name='系统等级')
     thanos_id = models.IntegerField(verbose_name='thanos上对应的系统ID', null=True, blank=True)

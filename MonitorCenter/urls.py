@@ -11,6 +11,7 @@ urlpatterns = [
     path('sync/objects/', views.sync_objects),
     path('sync/xcobjects/', views.sync_xcobjects),
     path('sync/system/', views.sync_system_info),
+    path('test/', views.test),
     # 对象接口路径
     # path('objects/', views.MonitorObjectview.index, name='index'),
     path('monitor_objects/system/<int:system_id>/', views.get_monitor_objects_by_system, name='get_monitor_objects_by_system'),
@@ -24,6 +25,7 @@ urlpatterns = [
     # 指标接口路径
     path('metrics/', views.MetricsListCreateView.as_view(), name='metrics-list-create'),
     path('metrics/<int:id>/', views.MetricsRetrieveUpdateDestroyView.as_view(), name='metrics-retrieve-update-destroy'),
+    path('metrics/update/<int:sys_id>/<int:metric_id>/', views.update_metric_by_sys_metric_id),
     path('metrics/sysinfo/', views.create_metrics_with_sys_info, name='create_metrics_with_sys_info'),
     path('metrics/sysinfo/<int:sys_id>/<int:metric_type>/', views.get_metrics_by_sys_id),
     path('metrics/create_with_hosts/', views.create_metrics_with_hosts),

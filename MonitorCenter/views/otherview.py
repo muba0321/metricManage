@@ -5,9 +5,9 @@ import requests
 from django.http import HttpResponse, JsonResponse
 from rest_framework import exceptions
 from rest_framework.decorators import api_view
-
+import logging
 from MonitorCenter.models import MonitorObject, HostsInfo, SysInfoManage, MetricsHostsInfo, MetricsMonitorObject, \
-    Metrics
+    Metrics, MonitorObjectSystem, HostSysMapping
 
 
 def check_access_key(request):
@@ -44,41 +44,50 @@ def info(request):
 @csrf_exempt
 def sync_hosts(request):
     hosturl = "http://192.168.50.3:5000/thanos-cmdb/v1/systemRelation/relate/system/host/"
-    response = requests.get(hosturl)
-    data = response.json()
-    hosts_dict = data['data']
-    hosts = [value for key, value in hosts_dict.items() if key.isdigit()]
 
-    ip_addresses_from_api = set(host['ip'] for host in hosts)
+    all_thanos_ids = list(filter(None, SysInfoManage.get_all_system_ids()))
+    for thanos_id in all_thanos_ids:
+        params = {
+            "systemId": thanos_id,
+        }
+        response = requests.get(hosturl, params=params)
+        data = response.json()
+        hosts = data.get('data', [])
+        # hosts = [value for key, value in hosts_dict.items() if key.isdigit()]
 
-    # 获取所有标记为 'auto' 的本地主机
-    local_hosts = HostsInfo.objects.filter(create_type='auto')
+        ip_addresses_from_api = set(host['ip'] for host in hosts if 'ip' in host)
 
-    system_ids = SysInfoManage.get_all_system_ids()
+        # 获取所有标记为 'auto' 的本地主机,加个系统的逻辑回头
 
-    # 检查每一个本地主机
-    for local_host in local_hosts:
-        # 如果本地主机的IP不在接口返回的IP集合中，将其标记为逻辑删除
-        if local_host.ip_address not in ip_addresses_from_api:
-            local_host.is_deleted = True
-            local_host.save()
+        local_hosts = HostsInfo.objects.filter(create_type='auto', thanos_id=thanos_id)
 
-    for host_data in hosts:
-        ip_address = host_data['ip']
-        host, created = HostsInfo.objects.get_or_create(ip_address=ip_address)
-        # 更新其它属性
-        # 你可以在这里添加需要更新的属性，例如：
-        # host.hostname = host_data['hostName']
-        host.mem_size = host_data['memSize']
-        host.disk_size = host_data['diskSize']
-        host.cpu_hz = host_data['cpuHz']
-        host.thanos_id = host_data['id']
-        host.thanos_status = host_data['status']
-        host.host_name = host_data['hostName']
-        host.os_disrtro = host_data['osDistro']
-        host.create_type = 'auto'
-        host.is_deleted = False  # 重置删除标志，因为这个主机现在在接口返回的数据中
-        host.save()
+        # 然后，使用这些id获取主机
+
+        sys_info_manage = SysInfoManage.objects.filter(thanos_id=thanos_id).first()
+        # 检查每一个本地主机
+        for local_host in local_hosts:
+            # 如果本地主机的IP不在接口返回的IP集合中，将其标记为逻辑删除
+            if local_host.ip_address not in ip_addresses_from_api:
+                local_host.is_deleted = True
+                local_host.save()
+
+        for host_data in hosts:
+            ip_address = host_data['ip']
+            host, created = HostsInfo.objects.get_or_create(ip_address=ip_address, thanos_id=thanos_id)
+            # 更新其它属性
+            # 你可以在这里添加需要更新的属性，例如：
+            host.mem_size = host_data['memSize']
+            host.disk_size = host_data['diskSize']
+            host.cpu_hz = host_data['cpuHz']
+            host.thanos_id = host_data['id']
+            host.thanos_status = host_data['status']
+            host.host_name = host_data['hostName']
+            host.os_disrtro = host_data['osDistro']
+            host.create_type = 'auto'
+            host.is_deleted = False  # 重置删除标志，因为这个主机现在在接口返回的数据中
+            host.save()
+
+            HostSysMapping.objects.get_or_create(host=host, sys_info=sys_info_manage)
     res = {"code": 0, "msg": "success"}
     # 返回
     return HttpResponse(json.dumps(res))
@@ -89,41 +98,22 @@ def sync_hosts(request):
 def sync_objects(request):
     serviceurl = "http://192.168.50.3:5001/thanos-cmdb/v1/serviceinfo/page"
 
-    # headers = {
-    #     "Authorization": "ddhiuewkhdwjhedwjedhkwjhdkdheakdjknaedebadlhl",
-    #     # 添加更多头部信息
-    # }
-
-    # headers = {
-    #     "Content-Type": "application/json",
-    #     "Authorization": "Your Token"
-    # }
-    # # 定义 body
-    # body = {
-    #     "key1": "value1",
-    #     "key2": "value2"
-    # }
-    # params = {
-    #     "key1": "value1",
-    #     "key2": "value2"
-    # }
-    # response = requests.post('http://thanos_api/get_all_systems', headers=headers, json=body)
-    # response = requests.get(serviceurl, headers=headers, params=params)
-
-    all_thanos_ids = SysInfoManage.get_all_system_ids()
+    all_thanos_ids = list(filter(None, SysInfoManage.get_all_system_ids()))
     for thanos_id in all_thanos_ids:
-        params = {
-            "systemId": str(thanos_id),
-        }
+        #body = {
+        #    "systemId": thanos_id,
+        #}
         response = requests.get(serviceurl)
-        print(response.text)
         data = response.json()
-        services = data['data']['result']  # 从 "result" 键对应的列表中获取服务信息
+        services = data.get('data', {}).get('result', [])
+        if not services:
+            continue
+        # 从 "result" 键对应的列表中获取服务信息
 
         object_name_from_api = set(service['name'] for service in services)
 
         # 获取所有标记为 'auto' 的本地主机
-        local_objects = MonitorObject.objects.filter(create_type='auto', is_xc='False')
+        local_objects = MonitorObject.objects.filter(create_type='auto', is_xc='False', thanos_id=thanos_id)
 
         # 检查每一个本地主机
         for local_object in local_objects:
@@ -131,7 +121,7 @@ def sync_objects(request):
             if local_object.object_name not in object_name_from_api:
                 local_object.is_deleted = True
                 local_object.save()
-
+        sys_info_manage = SysInfoManage.objects.get(thanos_id=thanos_id)
         for service_data in services:
             object_name = service_data['name']
             if service_data['isContainerApp'] == "Y":
@@ -139,7 +129,7 @@ def sync_objects(request):
             else:
                 object_type = 'local_service'
 
-            objects = MonitorObject.objects.exclude(is_xc='True').filter(object_name=object_name)
+            objects = MonitorObject.objects.exclude(is_xc='True').filter(object_name=object_name, thanos_id=thanos_id)
 
             if not objects.exists():
                 objects = [MonitorObject.objects.create(object_name=object_name, object_type=object_type)]
@@ -153,6 +143,8 @@ def sync_objects(request):
                 object.create_type = 'auto'
                 object.is_deleted = False  # 重置删除标志，因为这个主机现在在接口返回的数据中
                 object.save()
+
+                MonitorObjectSystem.objects.create(monitor_object=object, sys_info_manage=sys_info_manage)
     res = {"code": 0, "msg": "success"}
     # 返回
     return HttpResponse(json.dumps(res))
@@ -163,22 +155,27 @@ def sync_objects(request):
 def sync_xcobjects(request):
 
     xcserviceurl = "http://192.168.50.3:5002/thanos-cmdb/v1/cceAppinfo/"
-    all_thanos_ids = SysInfoManage.get_all_system_ids()
+
+    all_thanos_ids = list(filter(None, SysInfoManage.get_all_system_ids()))
     for thanos_id in all_thanos_ids:
         params = {
-            "systemId": str(thanos_id),
+            "systemId": thanos_id,
         }
     # params = {
     #     "systemId": "2",
     # }
         response = requests.get(xcserviceurl, params=params)
         data = response.json()
-        xcservices = data['data']  # 直接访问 "data" 键对应的字典
+        #xcservices = data['data']  # 直接访问 "data" 键对应的字典
+        xcservices = data['data']  # 从 "result" 键对应的列表中获取服务信息
+        if not xcservices:
+            continue
 
-        xcobject_name_from_api = set(xcservices[key]['name'] for key in xcservices if isinstance(xcservices[key], dict))
+        xcobject_name_from_api = set(xcservice['name'] for xcservice in xcservices)
+        # xcobject_name_from_api = set(xcservices[key]['name'] for key in xcservices if isinstance(xcservices[key], dict))
 
         # 获取所有标记为 'auto' 的本地主机
-        local_objects = MonitorObject.objects.filter(create_type='auto', is_xc='True')
+        local_objects = MonitorObject.objects.filter(create_type='auto', is_xc='True', thanos_id=thanos_id)
 
         # 检查每一个本地主机
         for local_object in local_objects:
@@ -187,19 +184,21 @@ def sync_xcobjects(request):
                 local_object.is_deleted = True
                 local_object.save()
 
-        for key, xcservice_data in xcservices.items():  # 使用 items() 方法遍历字典
+        sys_info_manage = SysInfoManage.objects.get(thanos_id=thanos_id)
+
+        for xcservice_data in xcservices:  # 使用 items() 方法遍历字典
             if isinstance(xcservice_data, dict):  # 如果服务数据是字典，才进行处理
                 object_name = xcservice_data['name']
                 object_type = 'container'
 
                 # 使用 get 方法找到相应的对象，如果找不到就创建
                 try:
-                    objects = MonitorObject.objects.exclude(is_xc='False').get(object_name=object_name)
+                    objects = MonitorObject.objects.exclude(is_xc='False').get(object_name=object_name,  thanos_id=thanos_id)
                 except MonitorObject.DoesNotExist:
                     objects = MonitorObject.objects.create(object_name=object_name, object_type=object_type)
 
                 # 更新对象的属性
-                objects.object_desc = xcservice_data['fullName']
+                objects.object_desc = xcservice_data['namespace']
                 objects.is_xc = xcservice_data['new']
                 objects.thanos_id = xcservice_data['id']
                 objects.object_type = object_type
@@ -211,58 +210,7 @@ def sync_xcobjects(request):
     return HttpResponse(json.dumps(res))
 
 
-# # 同步数据库信息
-# @csrf_exempt
-# def sync_hosts(request):
-#     hosturl = "http://192.168.50.3:5000/thanos-cmdb/v1/rdsinfo/page"
-#
-#     all_thanos_ids = SysInfoManage.get_all_system_ids()
-#     for thanos_id in all_thanos_ids:
-#         params = {
-#             "systemId": str(thanos_id),
-#         }
-#
-#         response = requests.get(hosturl)
-#         data = response.json()
-#         sql_dict = data['data']
-#         hosts = [value for key, value in sql_dict.items() if key.isdigit()]
-#
-#         sql_from_api = set(host['ip'] for host in hosts)
-#
-#         # 获取所有标记为 'auto' 的本地主机
-#         local_hosts = HostsInfo.objects.filter(create_type='auto')
-#
-#         system_ids = SysInfoManage.get_all_system_ids()
-#
-#         # 检查每一个本地主机
-#         for local_host in local_hosts:
-#             # 如果本地主机的IP不在接口返回的IP集合中，将其标记为逻辑删除
-#             if local_host.ip_address not in ip_addresses_from_api:
-#                 local_host.is_deleted = True
-#                 local_host.save()
-#
-#         for host_data in hosts:
-#             ip_address = host_data['ip']
-#             host, created = HostsInfo.objects.get_or_create(ip_address=ip_address)
-#             # 更新其它属性
-#             # 你可以在这里添加需要更新的属性，例如：
-#             # host.hostname = host_data['hostName']
-#             host.mem_size = host_data['memSize']
-#             host.disk_size = host_data['diskSize']
-#             host.cpu_hz = host_data['cpuHz']
-#             host.thanos_id = host_data['id']
-#             host.thanos_status = host_data['status']
-#             host.host_name = host_data['hostName']
-#             host.os_disrtro = host_data['osDistro']
-#             host.create_type = 'auto'
-#             host.is_deleted = False  # 重置删除标志，因为这个主机现在在接口返回的数据中
-#             host.save()
-#     res = {"code": 0, "msg": "success"}
-#     # 返回
-#     return HttpResponse(json.dumps(res))
-
-
-# 同步系统数据方法
+# 同步系统信息方法
 @csrf_exempt
 def sync_system_info(request):
     import requests
@@ -270,53 +218,53 @@ def sync_system_info(request):
     data = response.json()
 
     if data["code"] == 0 and data["succeed"] is True:
-        for key, remote_system in data["data"]["result"].items():
+        for remote_system in data["data"]["result"]:
             try:
-                system = SysInfoManage.objects.get(Sys_name=remote_system["name"])
-                system.thanos_id = remote_system["id"]
+                # 按照 thanos_id 查询对象
+                system = SysInfoManage.objects.get(Sys_abbreviation=remote_system["name"])
+                # 更新系统的其他信息
+                system.Sys_name = remote_system["fullName"]
+                system.Sys_abbreviation = remote_system["name"]
+                system.Sys_dev_pricipal = remote_system["contantName"]
+                system.Sys_ops_pricipal = remote_system["bizContantName"]
+                system.Sys_bussi_pricipal = remote_system["businessContactName"]
                 system.save()
             except SysInfoManage.DoesNotExist:
-                new_system = SysInfoManage(Sys_name=remote_system["name"], thanos_id=remote_system["id"])
+                # 如果没有找到对应的 thanos_id，那么创建新的对象
+                new_system = SysInfoManage(
+                    Sys_name=remote_system["fullName"],
+                    Sys_abbreviation=remote_system["name"],
+                    Sys_dev_pricipal=remote_system["contantName"],
+                    Sys_ops_pricipal=remote_system["bizContantName"],
+                    Sys_bussi_pricipal=remote_system["businessContactName"],
+                    thanos_id=remote_system["id"]
+                )
                 new_system.save()
     res = {"code": 0, "msg": "success"}
     # 返回
     return HttpResponse(json.dumps(res))
 
 
-# @csrf_exempt
-# def sync_system_info(request):
-#     # 远程系统接口的URL
-#     remote_url = "http://192.168.50.3:5003/thanos-cmdb/v1/system/list"
-#
-#     # 发送HTTP请求到远程系统接口
-#     response = requests.get(remote_url)
-#     response_data = response.json()
-#
-#     data = json.loads(response.text)
-#     print(data)
-#     if response_data["code"] == 0:
-#         # 获取远程系统返回的数据
-#         remote_systems = response_data["data"]
-#
-#         # 对于远程系统返回的每一个数据，同步到本地数据库
-#         for remote_system in remote_systems:
-#             try:
-#                 # 尝试在本地数据库中查找对应的系统
-#                 system = SysInfoManage.objects.get(thanos_id=remote_system["id"])
-#             except ObjectDoesNotExist:
-#                 # 如果在本地数据库中找不到对应的系统，创建一个新的系统
-#                 system = SysInfoManage()
-#
-#             # 将远程系统的数据同步到本地数据库
-#             system.Sys_name = remote_system["name"]
-#             system.thanos_id = remote_system["id"]
-#             # 如果远程系统数据中还有其它字段，你也可以在这里同步
-#
-#             # 保存到本地数据库
-#             system.save()
-#     else:
-#         print(f"Failed to sync system info, error code: {response_data['code']}, message: {response_data['msg']}")
+# headers = {
+#     "Authorization": "ddhiuewkhdwjhedwjedhkwjhdkdheakdjknaedebadlhl",
+#     # 添加更多头部信息
+# }
 
+# headers = {
+#     "Content-Type": "application/json",
+#     "Authorization": "Your Token"
+# }
+# # 定义 body
+# body = {
+#     "key1": "value1",
+#     "key2": "value2"
+# }
+# params = {
+#     "key1": "value1",
+#     "key2": "value2"
+# }
+# response = requests.post('http://thanos_api/get_all_systems', headers=headers, json=body)
+# response = requests.get(serviceurl, headers=headers, params=params)
 
 
 @csrf_exempt
@@ -367,3 +315,11 @@ def metrics_summary(request, sys_id, metric_type):
     # 返回结果
     return JsonResponse(res)
 
+
+# 同步服务信息
+@csrf_exempt
+def test(request):
+    all_thanos_ids = list(filter(None, SysInfoManage.get_all_system_ids()))
+    for thanos_id in all_thanos_ids:
+        print(thanos_id)
+    return HttpResponse()  # 返回一个空的 HttpResponse

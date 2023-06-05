@@ -16,15 +16,13 @@ class MonitorObject(models.Model):
         ('container', '容器服务'),
     )
     # 监控模块类型
-    object_type = models.CharField(choices=object_layer, max_length=64, default='container',
-                                   verbose_name="监控模块类型")
+    object_type = models.CharField(choices=object_layer, max_length=64, default='container',verbose_name="监控模块类型")
     # 监控对象名称
     object_name = models.CharField(max_length=64, verbose_name='监控模块名称', null=True, blank=True)
     object_desc = models.CharField(max_length=64, verbose_name='监控对象描述', null=True, blank=True)
     thanos_id = models.IntegerField(verbose_name='thanos的id', null=True, blank=True)
     is_xc = models.CharField(max_length=64, verbose_name="是否是信创", null=True, blank=True)
     create_type = models.CharField(max_length=64, verbose_name="创建方式", null=True, blank=True, default='artificial')
-    # 监控对象创建时间
     create_time = models.DateTimeField(auto_now_add=True, verbose_name='创建日期')
     sysinfo_object_id = models.ManyToManyField(SysInfoManage, through='MonitorObjectSystem',
                                                related_name='monitor_objects')

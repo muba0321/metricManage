@@ -141,7 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ORIGIN_WHITELIST = (
     'http://127.0.0.1:8000',
     'http://192.168.1.101:9528',
-    'http://localhost:9528',
+    'http://127.0.0.1:9528',
     'http://144.34.162.239:8001',
     #凡是出现在白名单中的域名，都可以访问后端接口
 )
