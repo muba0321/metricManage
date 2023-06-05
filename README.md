@@ -1,14 +1,14 @@
 指标中心当前版本1.0.3
 python3.10（如果使用pycharm的话需要2023版本）\
-asgiref==3.6.0
-Django==4.1.7
-django-cors-headers==3.14.0
-djangorestframework==3.14.0
-install==1.3.5
-pytz==2023.3
-sqlparse==0.4.3
-tzdata==2023.3
-requests~=2.30.0
+asgiref==3.6.0\
+Django==4.1.7\
+django-cors-headers==3.14.0\
+djangorestframework==3.14.0\
+install==1.3.5\
+pytz==2023.3\
+sqlparse==0.4.3\
+tzdata==2023.3\
+requests~=2.30.0\
 
 部署流程：
 1.修改后端的setting.xml里面的数据库信息以及最下面的准入IP加端口
