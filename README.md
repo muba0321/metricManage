@@ -1,5 +1,5 @@
 指标中心当前版本1.0.3
-python3.10（如果使用pycharm的话需要2023版本）
+python3.10（如果使用pycharm的话需要2023版本）\
 asgiref==3.6.0
 Django==4.1.7
 django-cors-headers==3.14.0
